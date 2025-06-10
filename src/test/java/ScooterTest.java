@@ -31,34 +31,44 @@ public class ScooterTest {
                         .map(button -> new Object[]{button, browser}));
     }
 
-    @BeforeEach
-    public void setUp() {
-        driver = new ChromeDriver();
-
+    static Stream<Object[]> buttonTextsProvider() {
+        return Stream.of(
+                new Object[]{By.xpath("//*[@id='accordion__heading-0']"), "Сколько это стоит? И как оплатить?"},
+                new Object[]{By.xpath("//*[@id='accordion__heading-1']"), "Хочу сразу несколько самокатов! Так можно?"},
+                new Object[]{By.xpath("//*[@id='accordion__heading-2']"), "Как рассчитывается время аренды?"},
+                new Object[]{By.xpath("//*[@id='accordion__heading-3']"), "Можно ли заказать самокат прямо на сегодня?"},
+                new Object[]{By.xpath("//*[@id='accordion__heading-4']"), "Можно ли продлить заказ или вернуть самокат раньше?"},
+                new Object[]{By.xpath("//*[@id='accordion__heading-5']"), "Вы привозите зарядку вместе с самокатом?"},
+                new Object[]{By.xpath("//*[@id='accordion__heading-6']"), "Можно ли отменить заказ?"},
+                new Object[]{By.xpath("//*[@id='accordion__heading-7']"), "Я живу за МКАДом, привезёте?"}
+        );
     }
 
-    @Test
-    @DisplayName("Проверка соответствия текста кнопкам в блоке Вопросы о важном")
-    public void testMainPageButtonsText() {
-
-        for (int i = 0; i < scooterMainPage.buttons.length; i++) {
-            WebElement button = driver.findElement(scooterMainPage.buttons[i]);
-            String actualText = button.getText();
-            String expectedText = scooterMainPage.expectedTexts[i];
-
-            assertEquals(expectedText, actualText);
+    @BeforeEach
+    public void setUp() {
+        if (driver == null) {
+            driver = new ChromeDriver();
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("buttonTextsProvider")
+    @DisplayName("Проверка соответствия текста кнопкам в блоке Вопросы о важном")
+    public void testMainPageButtonsText(By buttonLocator, String expectedText) {
+        driver.get("https://qa-scooter.praktikum-services.ru/");
+        WebElement button = driver.findElement(buttonLocator);
+        String actualText = button.getText();
+        assertEquals(expectedText, actualText);
     }
 
     @ParameterizedTest
     @MethodSource("combinedProvider")
     @DisplayName("e2e сценарий для разных браузеров и кнопок заказа")
     public void endToEndScenario(String buttonPosition, String browser) throws InterruptedException {
-        if (browser.equalsIgnoreCase("chrome")) {
-            driver = new ChromeDriver();
-        } else if (browser.equalsIgnoreCase("firefox")) {
-            driver = new FirefoxDriver();
+        if (driver != null) {
+            driver.quit();
         }
+        driver = "chrome".equalsIgnoreCase(browser) ? new ChromeDriver() : new FirefoxDriver();
 
         driver.get("https://qa-scooter.praktikum-services.ru/");
         scooterMainPage = new ScooterMainPage(driver);
@@ -74,7 +84,7 @@ public class ScooterTest {
 
         orderButton.click();
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
         WebElement nameInputField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@type='text' and @placeholder='* Имя']")));
         orderPage.fillOrderForm("Коля", "Пупкин", "Кошково 15", "89045551122", "Побыстрее", "Сокольники");
         orderPage.waitForLoadProfileData();
